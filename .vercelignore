@@ -1,0 +1,13 @@
+.env*
+!.env.example
+node_modules/
+.next/
+work/
+*.tsbuildinfo
+*.db*
+contracts/
+tests/
+scripts/
+docs/
+AGENTS.md
+.vercel/
