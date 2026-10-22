@@ -1,0 +1,29 @@
+{
+  "status": "READY",
+  "teamName": "Pranav",
+  "teamSlug": "pranav-b7db",
+  "teamId": "team_yxgP23j3ylo7nu1Xjh8Dhjl3",
+  "projectName": "proof-of-carbon",
+  "framework": "nextjs",
+  "nodeVersion": "24.x",
+  "buildCommand": "npm run build",
+  "target": "production",
+  "serverOnlyEnvironmentVariables": [
+    "GEMINI_API_KEY",
+    "GEMINI_MODEL",
+    "FIRMS_MAP_KEY",
+    "DATABASE_URL",
+    "DATABASE_AUTH_TOKEN"
+  ],
+  "publicEnvironment": {
+    "NEXT_PUBLIC_CHAIN_ID": "84532",
+    "NEXT_PUBLIC_RPC_URL": "https://sepolia.base.org",
+    "NEXT_PUBLIC_REGISTRY_ADDRESS": "0x19d794c34698d240c56dbf6d61c5508794024af8"
+  },
+  "credentialsInSourceUpload": false,
+  "notes": "Deployed and verified. Secrets are stored only in Vercel production environment variables and ignored local files. No wallet private key was uploaded.",
+  "productionUrl": "https://proof-of-carbon-five.vercel.app",
+  "projectId": "prj_jSQfSNm8RVnf1FU6S0Wjb5lgBpOy",
+  "deploymentId": "dpl_Coe5ahXpgBaMNbRj57JhdgXGdcQk",
+  "explanationModel": "gemini-3.5-flash-lite"
+}

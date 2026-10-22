@@ -1,0 +1,6 @@
+{
+  "chainId": 84532,
+  "explorer": "https://sepolia.basescan.org/address/0x19d794c34698d240c56dbf6d61c5508794024af8",
+  "address": "0x19d794c34698d240c56dbf6d61c5508794024af8",
+  "verification": "Exact deployed runtime bytecode matches solc 0.8.30 compilation of contracts/src/ProofOfCarbon.sol with optimizer 200 runs and Shanghai EVM."
+}
