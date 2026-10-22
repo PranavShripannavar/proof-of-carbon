@@ -1,0 +1,46 @@
+{
+  "name": "proof-of-carbon",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack --hostname 127.0.0.1",
+    "build": "next build --webpack",
+    "start": "next start --hostname 127.0.0.1",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "chain:test": "node scripts/chain-test.mjs",
+    "deploy:local": "node scripts/deploy-local.mjs",
+    "deploy:base": "node scripts/deploy-base.mjs",
+    "test:foundry": "node scripts/foundry-test.mjs",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.15.0",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.468.0",
+    "next": "^16.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "viem": "^2.38.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.0",
+    "@types/leaflet": "^1.9.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^16.0.0",
+    "ganache": "^7.9.2",
+    "prettier": "^3.9.10",
+    "solc": "0.8.30",
+    "tailwindcss": "^4.1.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0"
+  },
+  "optionalDependencies": {
+    "@foundry-rs/forge-win32-amd64": "^1.7.1"
+  }
+}
