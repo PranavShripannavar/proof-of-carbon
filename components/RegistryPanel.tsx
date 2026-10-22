@@ -21,6 +21,7 @@ import {
 } from "@/lib/registry";
 import type { Report } from "@/lib/domain";
 import { contractErrorName } from "@/lib/contract-errors";
+import { connectBrowserWallet } from "@/lib/wallet";
 import { Link2, Wallet, ExternalLink, RefreshCw } from "lucide-react";
 type Entry = {
   id: Hex;
@@ -103,6 +104,7 @@ export default function RegistryPanel({
   }
   async function connect(useLocal = false) {
     setError("");
+    setAccount(undefined);
     try {
       if (useLocal) {
         if (
@@ -124,23 +126,11 @@ export default function RegistryPanel({
         throw Error(
           "No browser wallet found. Install an EIP-1193 wallet, or use the configured local-chain demo.",
         );
-      const w = createWalletClient({
-        chain,
-        transport: custom(window.ethereum),
-      });
-      const [a] = await w.requestAddresses();
-      setAccount(a);
       setLocal(false);
-      if ((await w.getChainId()) !== chain.id) {
-        setStatus(`Wrong network. Switch to ${chain.name}.`);
-        try {
-          await w.switchChain({ id: chain.id });
-        } catch {
-          throw Error(
-            `Switch your wallet to ${chain.name} (chain ${chain.id}) and reconnect.`,
-          );
-        }
-      }
+      setStatus(`Connecting wallet on ${chain.name}…`);
+      const a = await connectBrowserWallet(window.ethereum, chain);
+      // Publish connected state only after network/account change events settle.
+      setAccount(a);
       setStatus("Wallet connected. Report ready for simulation.");
     } catch (e) {
       setError(message(e));
@@ -368,7 +358,9 @@ export default function RegistryPanel({
                 {e.retired ? "Prototype record retired" : "Registered"} ·{" "}
                 {e.reportHash.slice(0, 14)}…
               </small>
-              <a href={`/api/reports/${e.reportHash}`}>Canonical report <ExternalLink size={12}/></a>
+              <a href={`/api/reports/${e.reportHash}`}>
+                Canonical report <ExternalLink size={12} />
+              </a>
               {!isLocal ? (
                 <a
                   href={`https://sepolia.basescan.org/tx/${e.tx}`}
