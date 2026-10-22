@@ -1,0 +1,22 @@
+flowchart TD
+  U[Visitor: polygon, year, unverified tonnes] --> UI[Next.js dashboard + Leaflet]
+  UI --> API[POST /api/screen: Zod validation]
+  API --> C[claim-v1: normalize microdegree polygon + sorted conservative cells]
+  C --> A{Explicit evidence mode}
+  A -->|Demo data| F[Fixed 2025 synthetic fixtures]
+  A -->|Live| L[Server adapters: Open-Meteo + NASA FIRMS]
+  L --> N[Normalized evidence + availability + errors]
+  F --> N
+  N --> S[screen-v1: deterministic score + completeness]
+  S --> G[Gemini: enum-constrained JSON + evidence references]
+  G -->|Unavailable or invalid| T[Readable template]
+  G --> R[report-v1 canonical JSON + Keccak-256]
+  T --> R
+  R --> DB[(libSQL: durable remote in production)]
+  DB --> D[Canonical JSON downloads]
+  R --> UI
+  UI --> W[viem: wallet + network check + simulation]
+  W --> B[Base Sepolia registry: hashes, score, year, owner, cells]
+  B --> E[Confirmed receipt + explorer link]
+  B --> X[Reject reserved submitted cells per year]
+  B --> O[Owner retirement; cells stay reserved]
