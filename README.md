@@ -1,134 +1,224 @@
 # ProofOfCarbon
 
-A forest carbon **claim-screening** hackathon prototype. It collects environmental context, runs reproducible rules, explains the result, and anchors report integrity in a small EVM registry. It does not certify carbon credits, calculate verified removals, or establish additionality or permanence. Claimed tonnes are user-provided and unverified.
+### Evidence before assurance
 
-## Run locally
+**A working forest carbon claim screening prototype that makes environmental evidence inspectable and records geographic reservations on a blockchain.**
 
-Requirements: Node 22.12+ (tested with Node 24), npm; Foundry for `forge test`. No API key or wallet is needed for seeded screening.
+[Open the live app](https://proof-of-carbon-five.vercel.app) · [View the deployed registry](https://sepolia.basescan.org/address/0x19d794c34698d240c56dbf6d61c5508794024af8) · [Technical reference](docs/TECHNICAL.md)
 
-```powershell
-npm ci
-Copy-Item .env.example .env.local
-npm run dev
-```
+> Screening supports due diligence. It does not certify carbon credits, verify carbon removals, or establish additionality or permanence. Claimed tonnes are user supplied and unverified.
 
-Open http://127.0.0.1:3000. Choose a seeded scenario and **Screen this claim**. Demo evidence is conspicuously labeled. Live mode lets you click vertices on the Leaflet map and finish a polygon, or edit JSON coordinates using the keyboard. A server-side pipeline validates geometry before requests. Demo mode always pins geometry and reporting year to the chosen seed, even if a client sends altered coordinates.
+![ProofOfCarbon hosted application](docs/hosted-preview.png)
 
-### Local blockchain demo
+## The idea in 30 seconds
 
-In a second terminal:
+Imagine two accounts submitting claims for the same forest area and reporting year. A reviewer needs to inspect the environmental evidence, understand how a screening result was calculated, and identify conflicting registrations.
 
-```powershell
-npm run deploy:local
-```
+ProofOfCarbon brings those steps together:
 
-This starts a loopback-only Ganache EVM at port 8545, chain 31337, and deploys the same Solidity contract. Copy the printed public configuration into `.env.local`:
+1. **Select** a forest boundary and reporting year.
+2. **Screen** fire observations and weather context using reproducible rules.
+3. **Understand** the result through evidence coverage and a constrained Gemini explanation.
+4. **Download** a saved report with reproducible cryptographic fingerprints.
+5. **Register** its hashes and geographic cells through MetaMask on Base Sepolia.
 
-```dotenv
-NEXT_PUBLIC_CHAIN_ID=31337
-NEXT_PUBLIC_RPC_URL=http://127.0.0.1:8545
-NEXT_PUBLIC_REGISTRY_ADDRESS=<actual printed address>
-```
+A second registration that includes an already reserved cell for the same year fails. Retiring the original record preserves its reservations.
 
-Restart Next.js. Use **Use local demo wallet** to submit genuine local EVM transactions using loopback unlocked accounts; no private keys are displayed. The local chain resets on process restart. These transactions are never described as Base Sepolia transactions and have no fabricated explorer links.
+## For judges: a two-minute tour
 
-1. Screen Tapajós, connect the local wallet, register the report. Wait for confirmation.
-2. Screen Xingu, register its separate cells.
-3. Select the duplicate scenario, screen it, register: simulation invokes the real contract and returns `CellReserved`. The intentionally failing transaction is not broadcast and is not shown as a confirmed write.
-4. Retire a record as its owner. The contract preserves reservations. Retry the duplicate and it still fails.
+**No login, wallet, or API key is needed to explore the hosted screening demo.**
 
-Browser wallet writes use viem, chain checks, `simulateContract`, wallet submission, then confirmed receipts. Account/network changes require reconnection. User rejection, wrong network, RPC failure, no contract, contract rejection, and pending states are visible. Report browsing never requires a wallet.
+| Step | Where to click | What it demonstrates |
+| --- | --- | --- |
+| 1 | **Claim screening → Tapajós stewardship**, then **Screen this claim** below the map | A labeled synthetic example with zero hotspots and zero fire risk points |
+| 2 | Select **Xingu restoration** and screen again | Five synthetic hotspots produce 70 fire risk points |
+| 3 | Switch to **Live** and screen a supported completed year | Real adapters expose evidence coverage and limitations. Partial annual fire coverage produces **review required** |
+| 4 | Download the claim/report JSON | Inspectable report content and reproducible hashes |
+| 5 | Open **Audit registry** | Wallet connection, registration, transaction links, and owner retirement |
+
+**Important for repeat demos:** Tapajós and Xingu 2025 cells were used during the hosted walkthrough. Their registrations can already be reserved, including after retirement. A duplicate rejection is expected. The “Tapajós duplicate attempt” scenario deliberately overlaps Tapajós. Use existing transaction links to show completed writes. Do not expect another wallet to bypass the reservations.
+
+The activity list belongs to the browser that submitted the transactions. A new browser can show an empty list even though records remain on-chain. Use the [contract explorer](https://sepolia.basescan.org/address/0x19d794c34698d240c56dbf6d61c5508794024af8) to inspect the deployed address independently.
 
 ## Architecture
 
-Next.js App Router + TypeScript + Tailwind v4/CSS, Leaflet, viem, Zod, libSQL, Solidity/Foundry. No separate orchestration service. See [Mermaid source](docs/architecture.mmd).
+The website and backend share one Next.js application. The blockchain write is a separate action approved by the user in MetaMask.
 
 ```mermaid
-flowchart LR
-  UI[Dashboard + polygon] --> P[Validate + canonicalize]
-  P --> A[Live adapters or explicit demo fixtures]
-  A --> S[Deterministic screening]
-  S --> G[Schema-constrained Gemini or labeled template]
-  G --> D[(Persist canonical report in libSQL)]
-  D --> J[Download JSON + hashes]
-  J --> W[Wallet simulation + transaction]
-  W --> R[Base Sepolia registry]
-  R --> H[Confirmed audit / permanent cell reservation]
+flowchart TB
+    User["User selects forest area and reporting year"]
+    subgraph Vercel["Vercel-hosted application"]
+        Frontend["FRONTEND: Next.js + React<br/>Leaflet map, results, downloads, wallet UI"]
+        Backend["BACKEND: Next.js server API<br/>Zod validation, geometry, fixed scoring, canonical hashes"]
+    end
+    Fire["NASA FIRMS<br/>Fire observations"]
+    Weather["Open-Meteo historical API<br/>Weather context"]
+    AI["Gemini<br/>Constrained explanation of fixed findings"]
+    DB[("Turso / libSQL<br/>Saved canonical reports")]
+    Wallet["MetaMask + viem<br/>Simulate, approve, submit"]
+    Chain["Solidity registry on Base Sepolia<br/>Hashes, cells/year reservations, retirement"]
+    User --> Frontend
+    Frontend -->|Screening request| Backend
+    Fire -->|Evidence| Backend
+    Weather -->|Evidence| Backend
+    Backend -->|Validated findings| AI
+    AI -->|Schema-checked explanation| Backend
+    Backend --> DB
+    Backend -->|Report, score, coverage| Frontend
+    Frontend -->|Optional registration| Wallet
+    Wallet --> Chain
 ```
 
-## Scoring v1
+**Server secrets stay on the backend.** MetaMask controls transaction approval. A wallet is optional for screening and required for blockchain writes.
 
-Score means **detected risk points**, not probability, confidence, carbon quality, or percent verified. Higher is more detected risk. These weights are heuristic demonstration choices, not calibrated science.
+| Layer | Technology | Role |
+| --- | --- | --- |
+| Interface | Next.js App Router, React, TypeScript, Tailwind/CSS | Claim inputs, results, audit interface |
+| Map | Leaflet | Polygon selection and display |
+| Backend | Next.js route handlers, Zod | Input validation and screening pipeline |
+| Evidence | NASA FIRMS, Open-Meteo ERA5 | Fire observations and historical precipitation context |
+| Explanation | Gemini Interactions API | Explain deterministic findings with schema validation |
+| Persistence | Turso through libSQL | Durable hosted report storage |
+| Wallet | MetaMask, viem | Chain checks, simulation, submission, receipt confirmation |
+| Contract | Solidity, Base Sepolia | Submitted cell conflicts and owner retirement |
+| Verification | Vitest, Ganache, solc, Foundry | Application, wallet, geometry, and contract checks |
 
-| Rule            | Required input                    | Contribution                      |
-| --------------- | --------------------------------- | --------------------------------- |
-| FIRE-01         | Available full-year hotspot input | 0 hotspots: +0; 1–2: +40; 3+: +70 |
-| WEATHER-CONTEXT | Full-year daily precipitation     | +0; context only                  |
+## What the score means
 
-Thresholds: score <30 → **low detected risk**; 30–59 → **review required**; ≥60 → **high detected risk**. Missing/partial required annual fire evidence **always forces review required**, regardless of available observations. No signal labels a claim fraudulent. No risk calculation derives tonnes from fire or weather.
+**The score measures detected risk points.** It is not a probability, a carbon quality rating, or a percentage verified. The weights are heuristic prototype choices.
 
-Completeness is separate: 75% for required annual fire coverage and 25% for complete annual weather context. This is input availability, not confidence that the project is real or that the claim is true. Full fixture coverage is only full _synthetic input_ coverage. No zero score establishes safety.
+| Input | Fire risk contribution |
+| --- | ---: |
+| 0 hotspots with full annual input | 0 |
+| 1–2 hotspots with full annual input | 40 |
+| 3+ hotspots with full annual input | 70 |
+| Historical weather | 0, context only |
 
-## Evidence and AI boundaries
+With sufficient required evidence, scores below 30 mean **low detected risk**, 30–59 mean **review required**, and 60+ mean **high detected risk**. Missing or partial required annual fire evidence overrides the outcome to **review required**.
 
-All adapters share `EvidenceAdapter.collect(claim)`. Evidence records source URL, period, fetch time, spatial coverage, availability, integer-scaled values, errors, limitations, and demo flag.
+Evidence completeness is separate: 75% for required annual fire coverage and 25% for complete annual weather context. Completeness describes input availability, not confidence that a claim is true.
 
-- **Open-Meteo:** working keyless historical ERA5 adapter for completed years, full-year daily precipitation at the polygon bounding-box center. Requires every expected day and non-null nonnegative values. Single reanalysis grid point is not a polygon survey. Current/incomplete years fail explicitly. No drought rule exists without a baseline.
-- **NASA FIRMS:** server-only MAP key. VIIRS SNPP standard-processing query for the final 5 days of a completed reporting year (2012 onward, with processing lag). Parses coordinates and acquisition dates and filters detections against the submitted polygon. Availability/access errors remain visible. This bounded sample **cannot satisfy the annual rule**, which stays disabled in live mode. Standard-product coverage must be checked against FIRMS availability for the requested period; no present-day substitution occurs. Annual chunking or a validated annual dataset is future work.
-- **Fixtures:** all observations are invented, not NASA/Open-Meteo responses. Coordinates are real geographic positions chosen as fictional project examples; project names/claims do not describe actual credited projects. 2025 fixture precipitation and counts are synthetic. Quiet and duplicate share cells; Xingu has five invented hotspots. No fabricated transactions exist.
-- **Gemini:** server-side Interactions API (`store: false`) with JSON Schema and local Zod validation. The model selects/orders explanation statements from exact enums built from supplied deterministic findings. This deliberately restrictive design prevents new factual prose or score mutation. Each finding's evidence IDs must match its source rule; unsupported facts or references trigger a template fallback. Supporting user text is retained for human review and hashing but excluded from the AI prompt. Source text is data, not instructions. The origin and fallback reason are shown. This is a constrained AI explanation prototype, not an autonomous verifier.
+### Live evidence versus synthetic scenarios
 
-## Canonical integrity v1
+- **Live fire:** the current NASA FIRMS adapter requests the final **five days** of a supported completed reporting year, parses dates/coordinates, and filters detections to the polygon. This sample cannot satisfy the annual fire rule. Live annual outcomes therefore require review.
+- **Live weather:** Open-Meteo historical ERA5 provides daily precipitation at the bounding-box center. The adapter checks expected dates and valid values. A single reanalysis point is context, not a field survey.
+- **Demo fixtures:** invented observations illustrate quiet, fire, and duplicate cases. Geographic positions are real, but the project names and claims are fictional examples. Synthetic coverage never represents real annual verification.
+- **Failures:** unavailable evidence stays visible. Live mode does not silently substitute demo fixtures.
 
-`claim-v1` uses Unicode NFC project/notes, integer kg CO₂e (up to three decimal tonnes), integer microdegree coordinates, no duplicated closing vertex, counterclockwise winding, and a lexicographically smallest first vertex. Geometry is validated after quantization. A single simple ring only: no holes, touching/self-intersecting edges, repeated/collinear vertices, antimeridian crossing, or latitude outside ±80°. Same geometry with reversed winding, closure or rotated start produces the same hash for otherwise identical metadata.
+### Why AI cannot change the score
 
-Canonical JSON sorts object keys lexicographically, preserves array order, uses JSON string escaping, and accepts safe integers only (negative zero becomes zero). Hash is Ethereum Keccak-256 of UTF-8 canonical bytes. Claim hash commits to metadata, notes, normalized geometry, grid version, and sorted cells.
+The rules run before Gemini. The explanation service constrains model output to statements derived from the supplied findings and validates the response with Zod, including evidence references. Invalid responses or provider failures produce a labeled template fallback. The app shows the explanation origin. User notes are excluded from the AI prompt.
 
-The report hash commits to `reportPayload(report)`: version, creation time, mode, scenario, full canonical claim, claim hash, normalized evidence, screening, and explanation. `id`, `reportHash`, and operational `storage` label are excluded from their own hash. Downloaded report JSON is exactly this payload, so its byte hash can be checked directly; claim JSON is similarly canonical. Creation/fetch timestamps intentionally make repeated screening reports distinct. Reports are publicly retrievable by their hash; do not put confidential information in notes.
+## What the blockchain adds
 
-## Geographic cells and contract trust
+**Network:** Base Sepolia, chain ID `84532`
+**Registry:** [`0x19d794c34698d240c56dbf6d61c5508794024af8`](https://sepolia.basescan.org/address/0x19d794c34698d240c56dbf6d61c5508794024af8)
 
-Grid `degree-0.01-v1`: 0.01° by 0.01° cells, roughly 1.11 km north–south and 1.11·cos(latitude) km east–west. Integer shifted microdegree grid indices map to `cellId = y * 36000 + x + 1`. Cell range 1..648000000. All cells touched by a closed polygon are included: interior vertices, cell corners inside the polygon, edge intersections, and collinear/corner boundaries. Grid-aligned edges reserve cells on **both sides**. Sorted unique IDs; maximum 64 cells. Input bounds: 64 vertices, maximum 0.15° extent in either axis, 100 m²–25 km² approximate local planar area. Area is a prototype bound, not geodetic carbon accounting. Cells/gas are bounded independently. Near-limit areas should be reduced, not interpreted as precise surveying.
+The contract stores owner, claim/report hashes, submitted score, reporting year, timestamp, retirement status, and submitted cells. Registration reserves cells atomically by year. Only the owner can retire a record, and retirement never releases reservations.
 
-The registry stores owner, claim/report hashes, uint8 score ≤100, year 2000..2100, timestamp, retired flag, per-record cells and permanent year/cell reservations. Events expose registrations/retirements. Any reserved cell for the same year rejects the entire registration atomically. Different years are independent. Only the owner can retire; repeat retirement fails; retirement never releases cells.
+The hosted two-account walkthrough demonstrated registration through MetaMask, rejection of an overlapping registration from another account, owner-only retirement controls, and confirmed retirement. Local contract tests also cover permanent reservations after retirement.
 
-**Critical trust boundary:** anyone can call the contract with their own score, hashes and cells. The contract cannot verify that submitted cells match an off-chain polygon or that the app computed the score. A caller can omit cells or reserve arbitrary ones. This is submitted-cell conflict enforcement, not global duplicate prevention, proof of geometric overlap, certification, or an oracle. Nearby non-overlapping polygons may conflict due to coarse cells. No external registry synchronization, tokens, credit issuance or trading. Hashes provide integrity **only**; they do not prove report contents true or guarantee availability.
+**Trust boundary:** the contract accepts caller-supplied cells, scores, and hashes. It cannot independently verify the polygon or recompute the off-chain screening. Callers can omit cells or reserve arbitrary ones. Enforcement applies to submitted cells within this registry, not every carbon registry worldwide. The conservative 0.01° grid can also conflict for nearby non-overlapping polygons.
 
-## Persistence
+There is no token issuance, carbon credit trading, or recognized credit retirement. Hashes check content integrity, not truth or guaranteed availability.
 
-Development defaults to SQLite (`work/proof-of-carbon.db`) through libSQL. Reports use immutable insert-by-hash records. In production the adapter **refuses local file URLs** and requires a durable libSQL/Turso database URL (`libsql://…` or `https://…`) and optional server-side token. Provision a database and set environment secrets on your host. Do not deploy ephemeral filesystem persistence. Backups, retention, abuse protection and operational monitoring are needed before public production usage. The public unauthenticated endpoint has input bounds and fetch timeouts but no distributed rate limiter; use a protected hackathon deployment.
+## Reports that can be checked
 
-The audit list is a browser-local index of confirmed transactions, partitioned by chain/address. Refresh reads retirement from the contract. It is not an exhaustive registry explorer and does not replace on-chain events; losing browser state does not remove blockchain records. Server reports and browser activity have different persistence roles.
+Canonicalization converts geometry and quantities to defined integer representations, normalizes polygon winding/start position, and sorts JSON object keys. Ethereum Keccak-256 hashes commit to the canonical claim and report payloads.
 
-## Tests and checks
+Downloading the canonical JSON lets a reviewer recompute its fingerprint and compare it with the recorded hash. Report timestamps mean separate screening runs can legitimately have different report hashes.
+
+Reports are publicly retrievable by hash. **Do not include confidential information in claim notes.** Detailed formats, geometry limits, and hashing rules are in the [technical reference](docs/TECHNICAL.md).
+
+## Run locally
+
+Use Node.js **22.12+** and npm. The project has been tested with Node 24. Synthetic screening works without external API credentials or a wallet.
+
+```bash
+npm ci
+```
+
+Copy `.env.example` to `.env.local`:
 
 ```powershell
+# Windows PowerShell
+Copy-Item .env.example .env.local
+```
+
+```bash
+# macOS / Linux
+cp .env.example .env.local
+```
+
+```bash
+npm run dev
+```
+
+Open [localhost:3000](http://127.0.0.1:3000), select a demo scenario, and screen it. Without a Gemini key, the app uses its labeled explanation fallback.
+
+### Configuration
+
+| Variable | Used for |
+| --- | --- |
+| `GEMINI_API_KEY` | Optional server-side AI explanations |
+| `GEMINI_MODEL` | Configured explanation model, see `.env.example` |
+| `FIRMS_MAP_KEY` | Server-side live NASA FIRMS access |
+| `DATABASE_URL` | Development SQLite or production durable Turso/libSQL URL |
+| `DATABASE_AUTH_TOKEN` | Server-side database authentication |
+| `NEXT_PUBLIC_CHAIN_ID` | Public chain ID, `84532` for Base Sepolia |
+| `NEXT_PUBLIC_RPC_URL` | Public RPC endpoint |
+| `NEXT_PUBLIC_REGISTRY_ADDRESS` | Deployed registry address |
+
+Production refuses local filesystem database URLs. Keep `.env.local` ignored. Never commit credentials or share a wallet recovery phrase/private key. Existing-contract wallet use does not require a deployer private key.
+
+For a fresh disposable local blockchain:
+
+```bash
+npm run deploy:local
+```
+
+Copy its printed public chain configuration into `.env.local`, restart the app, and use the local demo wallet. This is a local Ganache chain, not Base Sepolia. See [deployment instructions](docs/DEPLOYMENT.md).
+
+## Verification
+
+```bash
 npm run lint
 npm run typecheck
 npm test
 npm run chain:test
 npm run build
+# With Foundry/compiler available:
 npm run test:foundry -- --offline
 # With the development server running:
 npm run smoke -- --live
-forge test --root contracts -vv
 ```
 
-`chain:test` compiles with solc 0.8.30 and executes the real contract on an ephemeral local EVM, including duplicate conflicts, different-year registration, authorization, repeated retirement, score/cell limits and atomic rollback. Foundry tests have no external forge-std dependency. Build does not require production storage credentials; executing a production screening does.
+Application tests cover canonicalization, geometry, screening, and wallet connection sequencing. Contract tests execute real bytecode on a local EVM and cover duplicate reservations, different years, retirement authorization, bounds, and atomic rollback. Wallet regression tests include account changes during network switching.
 
-## Deployment
+External live checks depend on provider availability and credentials. Local EVM checks and hosted MetaMask checks are distinct verification paths.
 
-See [deployment instructions](docs/DEPLOYMENT.md). No credentials were supplied with the brief. Never paste a private key in chat or commit `.env.local`. The scripts print only public addresses/transaction hashes. Base Sepolia target is chain 84532. Deploy only with an authorized environment signer and test ETH. The app is not deployed merely because scripts exist.
+## Limits and next steps
 
-## Integration references checked during implementation
+This is a deployed hackathon prototype, not a production certification service.
 
-- [Next.js route handlers](https://nextjs.org/docs/app/getting-started/route-handlers)
-- [Leaflet 1.9.4 reference](https://leafletjs.com/reference.html)
-- [Gemini structured output](https://ai.google.dev/gemini-api/docs/structured-output)
-- [Gemini Interactions API](https://ai.google.dev/api/interactions-api-v1) and [current Flash model](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash)
-- [Open-Meteo historical API](https://open-meteo.com/en/docs/historical-weather-api)
-- [NASA FIRMS Area API](https://firms.modaps.eosdis.nasa.gov/api/area/)
-- [viem simulation](https://viem.sh/docs/contract/simulateContract)
-- [Foundry installation](https://getfoundry.sh/introduction/installation)
+- Validate complete annual fire coverage before enabling annual live risk classification.
+- Calibrate rules and add independent validation of submitted scores and geographic cells.
+- Add production access controls, distributed rate limiting, monitoring, backups, and retention policies.
+- Replace the browser-local activity index with a complete event index if an exhaustive explorer is required.
+- Evaluate finer geographic handling and integration with external registries.
 
-See [demo script](docs/DEMO.md), [submission draft](docs/SUBMISSION.md), and [verification handoff](docs/HANDOFF.md).
+## Explore the code
+
+| Location | Responsibility |
+| --- | --- |
+| `app/` | Pages and server API routes |
+| `components/` | Map and wallet/registry interface |
+| `lib/pipeline.ts` | Screening orchestration |
+| `lib/live.ts`, `lib/fixtures.ts` | Real evidence and explicit synthetic fixtures |
+| `lib/scoring.ts`, `lib/explain.ts` | Fixed rules and constrained explanations |
+| `lib/canonical.ts`, `lib/geo.ts` | Integrity and geographic cells |
+| `lib/storage.ts` | Report persistence |
+| `contracts/src/ProofOfCarbon.sol` | Registry contract |
+| `tests/`, `scripts/`, `contracts/test/` | Verification and deployment tools |
+
+Further reading: [Technical reference](docs/TECHNICAL.md) · [Deployment](docs/DEPLOYMENT.md) · [Demo guide](docs/DEMO.md) · [Verification handoff](docs/HANDOFF.md)
