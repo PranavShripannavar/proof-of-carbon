@@ -4,11 +4,16 @@
 
 **A working forest carbon claim screening prototype that makes environmental evidence inspectable and records geographic reservations on a blockchain.**
 
-[Open the live app](https://proof-of-carbon-five.vercel.app) · [View the deployed registry](https://sepolia.basescan.org/address/0x19d794c34698d240c56dbf6d61c5508794024af8) · [Technical reference](docs/TECHNICAL.md)
+[Try it live](https://proof-of-carbon-five.vercel.app) · [Watch the pitch + demo (4:51)](https://github.com/PranavShripannavar/proof-of-carbon/blob/main/docs/media/ProofOfCarbon-Demo.mp4) · [View the deployed registry](https://sepolia.basescan.org/address/0x19d794c34698d240c56dbf6d61c5508794024af8) · [Technical reference](docs/TECHNICAL.md)
 
 > Screening supports due diligence. It does not certify carbon credits, verify carbon removals, or establish additionality or permanence. Claimed tonnes are user supplied and unverified.
 
 ![ProofOfCarbon hosted application](docs/hosted-preview.png)
+
+## Watch or try it
+
+- **[Try ProofOfCarbon in your browser](https://proof-of-carbon-five.vercel.app)** - explore synthetic screening without a login or wallet.
+- **[Watch the narrated pitch and demo](https://github.com/PranavShripannavar/proof-of-carbon/blob/main/docs/media/ProofOfCarbon-Demo.mp4)** - 4 minutes 51 seconds, including the application and MetaMask walkthrough. If GitHub does not show a player, use its download button or [download the MP4 directly](https://raw.githubusercontent.com/PranavShripannavar/proof-of-carbon/main/docs/media/ProofOfCarbon-Demo.mp4).
 
 ## The idea in 30 seconds
 
